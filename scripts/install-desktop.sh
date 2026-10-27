@@ -20,4 +20,7 @@ Icon=dev.atharv.vault
 Categories=Utility;Office;
 StartupWMClass=dev.atharv.vault
 DESKTOP
+# A stale icon cache hides a newly added icon, and the dock then shows a generic one.
+gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" >/dev/null 2>&1 || true
+update-desktop-database "$HOME/.local/share/applications" >/dev/null 2>&1 || true
 echo "Installed: Vault (in the app grid)"
