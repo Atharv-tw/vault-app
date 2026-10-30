@@ -97,6 +97,39 @@ void main() {
     expect(() => readNote(vault, 'Nothing'), throwsA(isA<TodoException>()));
   });
 
+  test('read_note never leaves the vault or reaches raw/ by another way round', () {
+    File(p.join(vault, 'raw', '2026-10-13.md')).writeAsStringSync('- 10:00 secret\n');
+    File(p.join(dir.path, 'outside.md')).writeAsStringSync('outside the vault');
+    File(p.join(vault, '.obsidian', 'hidden.md'))
+      ..createSync(recursive: true)
+      ..writeAsStringSync('hidden');
+    Link(p.join(vault, 'notes', 'Escape.md')).createSync(p.join(dir.path, 'outside.md'));
+    Link(p.join(vault, 'notes', 'Diary.md')).createSync(p.join(vault, 'raw', '2026-10-13.md'));
+    for (final ref in [
+      './raw/2026-10-13',
+      'notes/../raw/2026-10-13',
+      'RAW/2026-10-13',
+      r'raw\2026-10-13',
+      '../outside',
+      'notes/../../outside',
+      p.join(dir.path, 'outside'),
+      '.obsidian/hidden',
+      'notes/Escape',
+      'notes/Diary',
+    ]) {
+      expect(() => readNote(vault, ref), throwsA(isA<TodoException>()), reason: ref);
+    }
+  });
+
+  test('a note that is not UTF-8 is read, searched and linted without stopping anything', () {
+    newNote(vault, 'Hash maps', body: 'Lookup in one step.');
+    File(p.join(vault, 'notes', 'Cafe.md')).writeAsBytesSync([...'# Caf'.codeUnits, 0xe9, ...'\nhash maps\n'.codeUnits]);
+    expect(search(store, vault, 'hash maps').map((h) => h.where), containsAll(['notes/Hash maps.md', 'notes/Cafe.md']));
+    expect(readNote(vault, 'notes/Cafe').text, contains('# Caf\uFFFD'));
+    final issues = lintVault(vault);
+    expect(issues.where((i) => i.code == 'not_utf8').single.file, 'notes/Cafe.md');
+  });
+
   test('setup fills Me.md once, and goals are read and added', () {
     expect(meIsBlank(vault), isTrue);
     expect(goals(vault), isEmpty);

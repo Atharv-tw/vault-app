@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:vault_core/vault_core.dart';
 
+import 'read_text.dart';
+
 /// One place a search found the words: a note in the vault, a diary entry or
 /// a task.
 class SearchHit {
@@ -53,7 +55,7 @@ List<SearchHit> search(Store store, String? vault, String query, {Set<String>? k
       if (!rel.endsWith('.md') || rel.startsWith('raw/') || rel.split('/').any((s) => s.startsWith('.'))) {
         continue;
       }
-      final lines = f.readAsLinesSync();
+      final lines = const LineSplitter().convert(readText(f));
       // A note scores as a whole (so a word in the title and another in the
       // body still match) and is shown by its best line.
       final whole = _score('$rel\n${lines.join('\n')}', terms);
@@ -114,7 +116,7 @@ void appendLog(String vault, String op, String text) {
   if (!f.existsSync()) {
     f.writeAsStringSync('# Log\n\nOne line per change to the vault, oldest first, appended at the end.\n\n');
   }
-  final s = f.readAsStringSync();
+  final s = readText(f);
   f.writeAsStringSync(
     '${s.endsWith('\n') ? s : '$s\n'}- [${_today()}] $op | ${text.replaceAll('\n', ' ')}\n',
   );
@@ -124,7 +126,7 @@ void appendLog(String vault, String op, String text) {
 /// (making the heading if needed), unless a line naming [link] is there.
 void addToIndex(String vault, String section, String link, String line) {
   final f = File(p.join(vault, 'INDEX.md'));
-  var s = f.existsSync() ? f.readAsStringSync() : '# Index\n';
+  var s = f.existsSync() ? readText(f) : '# Index\n';
   if (s.contains('[[$link')) return;
   final heading = '## $section';
   final at = s.indexOf('\n$heading\n');
@@ -206,7 +208,7 @@ List<ProjectInfo> listProjects(String vault) {
     final name = p.basename(d.path);
     final f = File(p.join(d.path, '$name.md'));
     if (!f.existsSync()) continue;
-    final text = f.readAsStringSync();
+    final text = readText(f);
     final fields = _fields(text);
     final what = RegExp(r'\*\*What it is:\*\*\s*(.+?)(?:\.\s|\n\n)', dotAll: true).firstMatch(text)?.group(1);
     out.add(ProjectInfo(name, fields['status'], fields['updated'], what?.replaceAll('\n', ' ').trim()));
@@ -249,7 +251,7 @@ String newProject(String vault, String name, {String? what, String? repo, String
 String logProject(String vault, String name, String text, {String? ref}) {
   final folder = projectFolder(vault, name);
   final f = File(p.join(vault, 'projects', folder, 'log.md'));
-  final s = f.existsSync() ? f.readAsStringSync() : '# $folder: log\n\nOldest first.\n\n';
+  final s = f.existsSync() ? readText(f) : '# $folder: log\n\nOldest first.\n\n';
   final line = '- ${_today()}: ${text.trim()}${ref == null ? '' : ' ($ref)'}';
   f.writeAsStringSync('${s.endsWith('\n') ? s : '$s\n'}$line\n');
   appendLog(vault, 'work', '$folder: ${text.trim()}');
@@ -276,23 +278,23 @@ List<String> linkFolder(String vault, String folder, String project) {
       '`myvault notes save`. Before the session ends, log anything not yet logged.\n\n'
       'For coding work, do not read my other notes, never open the vault\'s `raw/`,\n'
       'and never copy anything from the vault into this folder.\n';
-  if (note.existsSync() && note.readAsStringSync().contains('Log this work to my vault')) {
+  if (note.existsSync() && readText(note).contains('Log this work to my vault')) {
     lines.add('${note.path} already links here.');
   } else {
-    note.writeAsStringSync(note.existsSync() ? '${note.readAsStringSync()}\n$text' : text);
+    note.writeAsStringSync(note.existsSync() ? '${readText(note)}\n$text' : text);
     lines.add('Wrote ${note.path}.');
   }
   final exclude = File(p.join(dir.path, '.git', 'info', 'exclude'));
   if (Directory(p.join(dir.path, '.git')).existsSync()) {
     exclude.createSync(recursive: true);
-    final s = exclude.readAsStringSync();
+    final s = readText(exclude);
     if (!s.split('\n').contains(linkNote)) {
       exclude.writeAsStringSync('${s.isEmpty || s.endsWith('\n') ? s : '$s\n'}$linkNote\n');
     }
     lines.add('Kept it out of git (.git/info/exclude).');
   }
   final info = File(p.join(vault, 'projects', name, 'info.md'));
-  final s = info.existsSync() ? info.readAsStringSync() : '# $name: info\n';
+  final s = info.existsSync() ? readText(info) : '# $name: info\n';
   if (!s.contains(dir.path)) {
     info.writeAsStringSync('${s.trimRight()}\n- **Local folder:** `${dir.path}`\n');
   }
@@ -303,7 +305,7 @@ List<String> linkFolder(String vault, String folder, String project) {
 List<String> goals(String vault) {
   final f = File(p.join(vault, 'Me.md'));
   if (!f.existsSync()) return const [];
-  final s = f.readAsStringSync();
+  final s = readText(f);
   final m = RegExp(r'^## Goals\s*\n(.*?)(?=^## |\z)', multiLine: true, dotAll: true).firstMatch(s);
   if (m == null) return const [];
   final out = <String>[];
@@ -320,7 +322,7 @@ List<String> goals(String vault) {
 /// Adds a goal to `Me.md` with today's date.
 void addGoal(String vault, String goal) {
   final f = File(p.join(vault, 'Me.md'));
-  var s = f.existsSync() ? f.readAsStringSync() : '# Me\n';
+  var s = f.existsSync() ? readText(f) : '# Me\n';
   final line = '- ${goal.trim()} (${_today()}).';
   final m = RegExp(r'^## Goals\s*\n', multiLine: true).firstMatch(s);
   if (m == null) {
@@ -345,31 +347,46 @@ void addGoal(String vault, String goal) {
       ? files.firstOrNull
       : files.where((f) => p.basenameWithoutExtension(f.path) == date).firstOrNull;
   if (pick == null) return null;
-  return (path: p.relative(pick.path, from: vault), text: pick.readAsStringSync());
+  return (path: p.relative(pick.path, from: vault), text: readText(pick));
 }
 
-/// Reads a note by its path in the vault or its title, refusing `raw/`.
+/// Reads a note by its path in the vault or its title, refusing `raw/`,
+/// hidden folders and anything outside the vault (`../`, an absolute path,
+/// or a link that leads out).
 ({String path, String text}) readNote(String vault, String ref) {
   final r = ref.trim().replaceAll(r'\', '/');
-  if (r.toLowerCase().startsWith('raw/')) {
+  final root = p.normalize(p.absolute(vault));
+  final target = p.normalize(p.join(root, r.endsWith('.md') ? r : '$r.md'));
+  if (!p.isWithin(root, target)) {
+    throw TodoException('Only notes inside the vault can be read: $ref');
+  }
+  final rel = p.relative(target, from: root).replaceAll(r'\', '/');
+  if (_isRaw(rel)) {
     throw TodoException(
       'raw/ is the word-for-word diary; only the filing agent reads it. See days/ instead.',
     );
   }
-  final direct = File(p.join(vault, r.endsWith('.md') ? r : '$r.md'));
-  if (direct.existsSync()) {
-    return (path: p.relative(direct.path, from: vault), text: direct.readAsStringSync());
+  final direct = File(target);
+  if (!_isHidden(rel) && direct.existsSync()) {
+    final real = direct.resolveSymbolicLinksSync();
+    final realRoot = Directory(root).resolveSymbolicLinksSync();
+    if (!p.isWithin(realRoot, real) || _isRaw(p.relative(real, from: realRoot).replaceAll(r'\', '/'))) {
+      throw TodoException('Only notes inside the vault can be read: $ref');
+    }
+    return (path: rel, text: readText(direct));
   }
   final want = p.basenameWithoutExtension(r).toLowerCase();
-  for (final f in Directory(vault).listSync(recursive: true).whereType<File>()) {
-    final rel = p.relative(f.path, from: vault).replaceAll(r'\', '/');
-    if (rel.startsWith('raw/') || !rel.endsWith('.md') || rel.split('/').any((s) => s.startsWith('.'))) {
-      continue;
-    }
-    if (p.basenameWithoutExtension(rel).toLowerCase() == want) return (path: rel, text: f.readAsStringSync());
+  for (final f in Directory(root).listSync(recursive: true).whereType<File>()) {
+    final rel = p.relative(f.path, from: root).replaceAll(r'\', '/');
+    if (_isRaw(rel) || !rel.endsWith('.md') || _isHidden(rel)) continue;
+    if (p.basenameWithoutExtension(rel).toLowerCase() == want) return (path: rel, text: readText(f));
   }
   throw TodoException('No note called "$ref". Try: myvault search $ref');
 }
+
+bool _isRaw(String rel) => rel.split('/').first.toLowerCase() == 'raw';
+
+bool _isHidden(String rel) => rel.split('/').any((s) => s.startsWith('.'));
 
 /// Commits everything in the vault and pushes it when it has a remote.
 List<String> saveVault(String vault, {String? message}) {
@@ -409,7 +426,7 @@ class Check {
 bool meIsBlank(String vault) {
   final f = File(p.join(vault, 'Me.md'));
   if (!f.existsSync()) return true;
-  return f.readAsStringSync().contains('(What you are working towards. One line each.)');
+  return readText(f).contains('(What you are working towards. One line each.)');
 }
 
 /// Writes the user's answers from setup into `Me.md`.
@@ -464,14 +481,14 @@ int publishPages(Store store, String vault) {
     final files = dir.listSync().whereType<File>().where((f) => f.path.endsWith('.md')).toList()
       ..sort((a, b) => b.path.compareTo(a.path));
     for (final f in files.take(kind == 'morning' ? 7 : 4)) {
-      final text = _withoutFrontmatter(f.readAsStringSync()).trim();
+      final text = _withoutFrontmatter(readText(f)).trim();
       if (store.putPage(kind, p.basenameWithoutExtension(f.path), text, title: _heading(text))) changed++;
     }
   }
   if (store.putPage('goals', 'all', goals(vault).join('\n'), title: 'Goals')) changed++;
   final me = File(p.join(vault, 'Me.md'));
   if (me.existsSync() &&
-      store.putPage('me', 'me', _withoutFrontmatter(me.readAsStringSync()).trim(), title: 'Me')) {
+      store.putPage('me', 'me', _withoutFrontmatter(readText(me)).trim(), title: 'Me')) {
     changed++;
   }
   final projects = [
@@ -479,7 +496,7 @@ int publishPages(Store store, String vault) {
       {
         ...x.toJson(),
         'overview': _withoutFrontmatter(
-          File(p.join(vault, 'projects', x.name, '${x.name}.md')).readAsStringSync(),
+          readText(File(p.join(vault, 'projects', x.name, '${x.name}.md'))),
         ).trim(),
       },
   ];

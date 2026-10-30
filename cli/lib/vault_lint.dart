@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import 'read_text.dart';
+
 /// One thing `myvault notes lint` found. An error is something that breaks the
 /// vault's rules (a link to a note that does not exist, a link into `raw/`);
 /// a warning is upkeep an agent or the person should look at.
@@ -44,7 +46,17 @@ List<LintIssue> lintVault(String root, {DateTime? today}) {
   for (final f in Directory(root).listSync(recursive: true).whereType<File>()) {
     final rel = p.relative(f.path, from: root).replaceAll(r'\', '/');
     if (!rel.endsWith('.md') || rel.split('/').any((part) => part.startsWith('.'))) continue;
-    notes[rel] = f.readAsStringSync();
+    notes[rel] = readText(f);
+    if (!isUtf8(f)) {
+      issues.add(
+        LintIssue(
+          'warning',
+          'not_utf8',
+          rel,
+          'Not saved as UTF-8, so some characters show as a box with a question mark. Open it and save it as UTF-8.',
+        ),
+      );
+    }
   }
 
   // Obsidian resolves [[name]] by file name anywhere, [[a/b]] by path.

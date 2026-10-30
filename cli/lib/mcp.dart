@@ -566,6 +566,11 @@ Future<void> serveMcp(Store store) async {
         } on TypeError {
           text = 'Wrong argument type for ${tool.name}';
           isError = true;
+        } catch (e) {
+          // Anything else (a file it could not read, say) fails this call
+          // only; the server keeps answering.
+          text = '${tool.name} failed: $e';
+          isError = true;
         }
         send(
           id,
