@@ -73,8 +73,14 @@ class SupabaseRemote implements Remote, ReportsMissingColumns {
     if (res.statusCode != 200) {
       final detail = _errorText(res);
       if (grant == 'refresh_token') {
-        signOut();
-        throw SyncException('Signed out (the session expired). Run: myvault login');
+        // Only a refresh token the server rejects ends the session. A busy,
+        // waking or unreachable server (5xx, 429, an HTML page) leaves the
+        // token in place for the next sync to try again.
+        if (_deadRefreshToken(res)) {
+          signOut();
+          throw SyncException('Signed out (the session expired). Run: myvault login');
+        }
+        throw SyncException('Could not refresh the session (HTTP ${res.statusCode}); will try again next sync.');
       }
       throw SyncException('Sign-in failed: $detail');
     }
@@ -105,6 +111,28 @@ class SupabaseRemote implements Remote, ReportsMissingColumns {
     try {
       final code = (jsonDecode(res.body) as Map<String, Object?>)['code'];
       return code == 'PGRST205' || code == '42P01';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Whether GoTrue's answer to a refresh says the refresh token itself is
+  /// no good (revoked, already used, unknown), rather than the server being
+  /// unable to answer right now.
+  bool _deadRefreshToken(http.Response res) {
+    if (res.statusCode != 400 && res.statusCode != 401 && res.statusCode != 403) return false;
+    try {
+      final data = jsonDecode(res.body) as Map<String, Object?>;
+      final code = '${data['error_code'] ?? data['error'] ?? ''}';
+      return const {
+        'invalid_grant',
+        'refresh_token_not_found',
+        'refresh_token_already_used',
+        'session_not_found',
+        'session_expired',
+        'user_not_found',
+        'user_banned',
+      }.contains(code);
     } catch (_) {
       return false;
     }
