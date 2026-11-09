@@ -7,7 +7,7 @@ import 'package:vault_core/vault_core.dart';
 /// same vault sits at a different path on each machine.
 const vaultPathKey = 'vault_path';
 
-String defaultVaultPath() => p.join(Platform.environment['HOME'] ?? '.', 'Vault');
+String defaultVaultPath() => p.join(userHomeDir(), 'Vault');
 
 /// The vault's folder on this device, or null if none has been set up.
 String? vaultPath(Store store) => store.getMeta(vaultPathKey);

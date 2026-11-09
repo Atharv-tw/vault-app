@@ -534,7 +534,7 @@ Future<void> serveMcp(Store store) async {
           result: {
             'protocolVersion': params['protocolVersion'] ?? '2025-06-18',
             'capabilities': {'tools': <String, Object?>{}},
-            'serverInfo': {'name': 'myvault', 'version': '0.2.0'},
+            'serverInfo': {'name': 'myvault', 'version': '0.2.1'},
           },
         );
       case 'ping':

@@ -997,7 +997,8 @@ String ask(String label, String fallback) {
   return answer.isEmpty ? fallback : answer;
 }
 
-String _expandHome(String path) => path == '~' || path.startsWith('~/') ? homeDir + path.substring(1) : path;
+String _expandHome(String path) =>
+    path == '~' || path.startsWith('~/') || path.startsWith(r'~\\') ? homeDir + path.substring(1) : path;
 
 class SchemaCommand extends Cmd {
   SchemaCommand()
@@ -1690,7 +1691,7 @@ class DoctorCommand extends Cmd {
     }
     for (final a in assistants) {
       if (!isInstalled(a.command)) continue;
-      final known = Process.runSync(a.command, ['mcp', 'get', 'myvault']).exitCode == 0;
+      final known = Process.runSync(a.command, ['mcp', 'get', 'myvault'], runInShell: Platform.isWindows).exitCode == 0;
       checks.add(
         Check(
           known,

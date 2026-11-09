@@ -12,8 +12,9 @@ import 'calendar_sync.dart';
 import 'outputs.dart';
 import 'reminders.dart';
 
-/// On the laptop the app shares one database with the CLI and top-bar widget.
-Future<String> appDbPath() async => Platform.isLinux
+/// On a computer the app shares one database with the CLI (and on Linux the
+/// top-bar widget).
+Future<String> appDbPath() async => Platform.isLinux || Platform.isWindows
     ? defaultDbPath()
     : p.join((await getApplicationSupportDirectory()).path, 'myvault.db');
 

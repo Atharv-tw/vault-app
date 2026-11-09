@@ -3,6 +3,24 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
+/// The user's home folder: `HOME`, or on Windows `USERPROFILE`.
+String userHomeDir() {
+  final env = Platform.environment;
+  return env['HOME'] ?? env['USERPROFILE'] ?? '.';
+}
+
+/// Where per-user data goes: `XDG_DATA_HOME` or `~/.local/share`, and on
+/// Windows `%LOCALAPPDATA%`.
+String userDataDir() {
+  final env = Platform.environment;
+  if (Platform.isWindows) {
+    final local = env['LOCALAPPDATA'];
+    if (local != null && local.isNotEmpty) return local;
+    return p.join(userHomeDir(), 'AppData', 'Local');
+  }
+  return env['XDG_DATA_HOME'] ?? p.join(userHomeDir(), '.local', 'share');
+}
+
 /// Laptop location of the shared database. The desktop app, the CLI and the
 /// GNOME widget all open this same file; `MYVAULT_DB` overrides it. A
 /// database from before the rename to Vault (`todo/todo.db`) keeps being
@@ -11,8 +29,7 @@ String defaultDbPath() {
   final env = Platform.environment;
   final override = env['MYVAULT_DB'] ?? env['TODO_DB'];
   if (override != null && override.isNotEmpty) return override;
-  final data =
-      env['XDG_DATA_HOME'] ?? p.join(env['HOME'] ?? '.', '.local', 'share');
+  final data = userDataDir();
   final current = p.join(data, 'myvault', 'myvault.db');
   final before = p.join(data, 'todo', 'todo.db');
   if (!File(current).existsSync() && File(before).existsSync()) return before;

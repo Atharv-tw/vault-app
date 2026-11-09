@@ -1,7 +1,8 @@
 # Building from source
 
 The [quick start](../README.md#quick-start) installs ready-made programs. Build
-from source to change the code, to run on something other than 64-bit Linux,
+from source to change the code, to run on something other than 64-bit Linux or
+Windows,
 or to bake your own sync server into the apps.
 
 ## What is in here
@@ -10,7 +11,7 @@ or to bake your own sync server into the apps.
 | --- | --- |
 | `packages/core` | Pure Dart: SQLite store, sync engine, Supabase client |
 | `cli` | The `myvault` command, including `myvault mcp` (MCP server over stdio) |
-| `apps/app` | Flutter app for Linux desktop and Android |
+| `apps/app` | Flutter app for Linux and Windows desktop, and Android |
 | `apps/app/android` | Android home-screen widgets (Today, Habits, Focus, Diary) |
 | `gnome-extension` | GNOME Shell top-bar widget |
 | `supabase/schema.sql` | Server tables, row-level security, last-write-wins trigger |
@@ -82,6 +83,17 @@ and publishable key. The install scripts pass it to the build.
 
 Adds "Vault" to the application grid. It shares the database with the CLI.
 
+On Windows (Visual Studio 2022 with "Desktop development with C++", and
+Flutter on the PATH), from `apps/app`:
+
+```powershell
+flutter build windows --release
+```
+
+The app is in `build\windows\x64\runner\Release`. It shares
+`%LOCALAPPDATA%\myvault\myvault.db` with the `myvault` command, which
+builds there with `dart build cli` in `cli`.
+
 ### 5. GNOME top-bar widget
 
 ```bash
@@ -144,7 +156,7 @@ The pictures are drawn from made-up data, never yours:
 ## Releasing
 
 Pushing a tag like `v0.2.0` runs `.github/workflows/release.yml`, which builds
-the command, the Linux app, the Android app and the GNOME extension and
+the command and the desktop app for Linux and Windows, the Android app and the GNOME extension and
 publishes them as a GitHub Release. The installer and the quick start always
 fetch the latest release.
 

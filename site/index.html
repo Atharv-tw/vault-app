@@ -42,7 +42,11 @@
         <code id="install-line">curl -fsSL https://raw.githubusercontent.com/Atharv-tw/vault-app/main/scripts/install.sh | sh -s -- --app</code>
         <button type="button" data-copy="install-line">Copy</button>
       </div>
-      <p class="fine">One line on 64-bit Linux: no sudo, nothing to build, five short questions.</p>
+      <p class="fine">One line on 64-bit Linux: no sudo, nothing to build, five short questions. On Windows, in PowerShell:</p>
+      <div class="install">
+        <code id="install-line-win">irm https://raw.githubusercontent.com/Atharv-tw/vault-app/main/scripts/install.ps1 | iex</code>
+        <button type="button" data-copy="install-line-win">Copy</button>
+      </div>
       <div class="ctas">
         <a class="btn" href="https://github.com/Atharv-tw/vault-app/releases/latest">Android app and downloads</a>
         <a class="btn ghost" href="https://github.com/Atharv-tw/vault-app">Read the source</a>
@@ -68,10 +72,10 @@
 
 <div class="marquee" aria-label="Works with">
   <ul>
-    <li>Claude Code</li><li>Codex</li><li>Any MCP agent</li><li>Obsidian</li><li>Your own git</li><li>Your own Supabase</li><li>Android</li><li>Linux</li><li>Whisper, on the device</li><li>Plain Markdown</li>
+    <li>Claude Code</li><li>Codex</li><li>Any MCP agent</li><li>Obsidian</li><li>Your own git</li><li>Your own Supabase</li><li>Android</li><li>Linux</li><li>Windows</li><li>Whisper, on the device</li><li>Plain Markdown</li>
   </ul>
   <ul aria-hidden="true">
-    <li>Claude Code</li><li>Codex</li><li>Any MCP agent</li><li>Obsidian</li><li>Your own git</li><li>Your own Supabase</li><li>Android</li><li>Linux</li><li>Whisper, on the device</li><li>Plain Markdown</li>
+    <li>Claude Code</li><li>Codex</li><li>Any MCP agent</li><li>Obsidian</li><li>Your own git</li><li>Your own Supabase</li><li>Android</li><li>Linux</li><li>Windows</li><li>Whisper, on the device</li><li>Plain Markdown</li>
   </ul>
 </div>
 
@@ -269,10 +273,15 @@ Fri  due          Methods draft to Priya</pre>
   <ol class="steps">
     <li class="spot" data-reveal>
       <h3>Install</h3>
-      <p>On 64-bit Linux, one line installs the <code>myvault</code> command and the desktop app into your home folder.</p>
+      <p>On 64-bit Linux or Windows, one line installs the <code>myvault</code> command and the desktop app into your home folder.</p>
       <div class="install">
         <code id="install-line-2">curl -fsSL https://raw.githubusercontent.com/Atharv-tw/vault-app/main/scripts/install.sh | sh -s -- --app</code>
         <button type="button" data-copy="install-line-2">Copy</button>
+      </div>
+      <p>On Windows, in PowerShell:</p>
+      <div class="install">
+        <code id="install-line-win-2">irm https://raw.githubusercontent.com/Atharv-tw/vault-app/main/scripts/install.ps1 | iex</code>
+        <button type="button" data-copy="install-line-win-2">Copy</button>
       </div>
       <p>For the phone, download the APK from the <a href="https://github.com/Atharv-tw/vault-app/releases/latest">latest release</a>. It needs Android 12 or newer.</p>
     </li>
@@ -301,7 +310,7 @@ Fri  due          Methods draft to Priya</pre>
 <section class="limits" aria-labelledby="limits-title">
   <h2 id="limits-title" data-reveal>What it does not do</h2>
   <ul data-reveal>
-    <li>The ready-made programs are for 64-bit Linux and Android 12 or newer. There is no iPhone, Windows or Mac build. The desktop pieces are built and used on GNOME.</li>
+    <li>The ready-made programs are for 64-bit Linux, 64-bit Windows and Android 12 or newer. There is no iPhone or Mac build. The top-bar widget and the laptop's screen time need GNOME on Linux.</li>
     <li>ChatGPT and other chat apps are not supported: they need a tool server on the internet, and this one runs on your machine.</li>
     <li>The nightly routine needs some setting up: sync through a Supabase project of your own, your notes in a private GitHub repository, and a Claude subscription that runs scheduled sessions. <code>myvault routine</code> prints the steps.</li>
     <li>The phone shows what your laptop publishes of the vault (pages, goals, projects, <code>Me.md</code>), not every note; reading them all on a phone needs Obsidian and a git app.</li>
