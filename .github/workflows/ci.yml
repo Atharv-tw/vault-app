@@ -51,3 +51,26 @@ jobs:
               text = (skill / 'SKILL.md').read_text()
               assert text.startswith('---\nname: ' + skill.name + '\ndescription: '), skill
           "
+
+  # The command also ships for Windows, so its tests run there too.
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.6
+          cache: true
+
+      - name: Core
+        working-directory: packages/core
+        run: |
+          dart pub get
+          dart test
+
+      - name: CLI
+        working-directory: cli
+        run: |
+          dart pub get
+          dart test

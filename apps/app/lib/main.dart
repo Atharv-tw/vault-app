@@ -27,7 +27,7 @@ Future<void> main() async {
     await HomeWidget.registerInteractivityCallback(widgetAction);
     await startBackgroundWork();
   }
-  final state = AppState(Store(openDb(path)))..start(watchDir: Platform.isLinux ? p.dirname(path) : null);
+  final state = AppState(Store(openDb(path)))..start(watchDir: Platform.isLinux || Platform.isWindows ? p.dirname(path) : null);
   runApp(TodoApp(state: state));
   if (Platform.isAndroid) {
     _watchWidgetLaunches(state);

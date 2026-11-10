@@ -347,7 +347,7 @@ void addGoal(String vault, String goal) {
       ? files.firstOrNull
       : files.where((f) => p.basenameWithoutExtension(f.path) == date).firstOrNull;
   if (pick == null) return null;
-  return (path: p.relative(pick.path, from: vault), text: readText(pick));
+  return (path: p.relative(pick.path, from: vault).replaceAll(r'\', '/'), text: readText(pick));
 }
 
 /// Reads a note by its path in the vault or its title, refusing `raw/`,

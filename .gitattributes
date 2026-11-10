@@ -1,0 +1,5 @@
+# Every file is checked out with LF endings, also on Windows: the tests compare
+# files byte for byte, and the skills are embedded as they are.
+* text=auto eol=lf
+*.ico binary
+*.png binary

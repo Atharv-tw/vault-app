@@ -10,7 +10,8 @@ Claude Code, Codex and any MCP agent read the same memory and the same plan,
 so none of them starts from zero, and each one makes the next more personal.
 
 It runs from a command line (`myvault`), an Android app with home-screen
-widgets, a Linux desktop app, a GNOME top-bar widget and an MCP server.
+widgets, a desktop app for Linux and Windows, a GNOME top-bar widget and an
+MCP server.
 Everything works offline. Your notes live in your own git repository, your
 data syncs through your own Supabase project, and no paid AI API is needed.
 
@@ -18,14 +19,27 @@ data syncs through your own Supabase project, and no paid AI API is needed.
 
 ## Quick start
 
-**1. Install.** On 64-bit Linux, one line. No sudo, nothing to build.
+**1. Install.** One line, on 64-bit Linux or Windows. No sudo or admin
+rights, nothing to build.
+
+On Linux:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Atharv-tw/vault-app/main/scripts/install.sh | sh -s -- --app
 ```
 
 That installs the `myvault` command and the desktop app (leave off
-`-s -- --app` for the command alone), then starts the setup. For the phone,
+`-s -- --app` for the command alone), then starts the setup.
+
+On Windows, in PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/Atharv-tw/vault-app/main/scripts/install.ps1 | iex
+```
+
+That installs the `myvault` command (on your PATH) and the desktop app (in
+the Start menu), then starts the setup. The GNOME top-bar widget and the
+laptop's screen time are Linux only. For the phone,
 download `vault-android-arm64.apk` from the
 [latest release](https://github.com/Atharv-tw/vault-app/releases/latest).
 
@@ -163,7 +177,7 @@ agent follows are in [docs/briefing-agent.md](docs/briefing-agent.md).
 
 ## The apps
 
-The Android and Linux app opens on your brain. Four tabs, with a **+** in the
+The Android, Linux and Windows app opens on your brain. Four tabs, with a **+** in the
 middle of the bar that opens the diary box from anywhere:
 
 - **Brain:** this morning's page, your goals, this week, your projects (tap

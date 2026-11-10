@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:vault_core/vault_core.dart' as core;
 
 import 'embedded.g.dart';
 
@@ -25,12 +26,12 @@ const assistants = [
   Assistant(id: 'codex', name: 'Codex', command: 'codex', skillsDir: '.agents/skills'),
 ];
 
-String get homeDir => Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'] ?? '.';
+String get homeDir => core.userHomeDir();
 
 /// Whether [command] can be run on this machine.
 bool isInstalled(String command) {
   try {
-    return Process.runSync(command, ['--version']).exitCode == 0;
+    return Process.runSync(command, ['--version'], runInShell: Platform.isWindows).exitCode == 0;
   } on ProcessException {
     return false;
   }
@@ -66,7 +67,13 @@ List<String> installSkills(String dir) {
 /// happened; never throws.
 List<String> connect(Assistant assistant, {required String todo, String? home}) {
   final lines = <String>[];
-  ProcessResult run(List<String> args) => Process.runSync(assistant.command, args);
+  // Through the Windows shell a missing program is an exit code, not an
+  // exception, so ask first.
+  if (Platform.isWindows && !isInstalled(assistant.command)) {
+    return ['${assistant.name} is not installed; skipped.'];
+  }
+  // On Windows the assistants are .cmd files, which only the shell can start.
+  ProcessResult run(List<String> args) => Process.runSync(assistant.command, args, runInShell: Platform.isWindows);
   try {
     // Asking first keeps a second run from failing on "already exists".
     final known = run(['mcp', 'get', 'myvault']).exitCode == 0;

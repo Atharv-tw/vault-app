@@ -1,5 +1,5 @@
-# Builds what people download: the `myvault` command, the Linux app, the Android
-# app and the GNOME extension. A tag like v0.2.0 publishes them as a GitHub
+# Builds what people download: the `myvault` command and the desktop app for
+# Linux and Windows, the Android app and the GNOME extension. A tag like v0.2.0 publishes them as a GitHub
 # Release; a pull request that touches this file only builds them, as a check.
 name: Release
 
@@ -7,7 +7,7 @@ on:
   push:
     tags: ['v*']
   pull_request:
-    paths: ['.github/workflows/release.yml']
+    paths: ['.github/workflows/release.yml', 'scripts/install.ps1', 'apps/app/windows/**']
   workflow_dispatch:
 
 env:
@@ -55,6 +55,69 @@ jobs:
             myvault-cli-linux-x64.tar.gz
             vault-app-linux-x64.tar.gz
             vault-gnome-extension.zip
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: The myvault command
+        working-directory: cli
+        shell: pwsh
+        run: |
+          dart pub get
+          dart build cli
+          Compress-Archive -Path build/cli/windows_x64/bundle -DestinationPath "$env:GITHUB_WORKSPACE/myvault-cli-windows-x64.zip"
+
+      - name: The command starts
+        shell: pwsh
+        run: |
+          Expand-Archive myvault-cli-windows-x64.zip -DestinationPath "$env:RUNNER_TEMP/check"
+          $env:LOCALAPPDATA = "$env:RUNNER_TEMP/data"
+          & "$env:RUNNER_TEMP/check/bundle/bin/myvault.exe" add "Check the Windows build" -d today
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          & "$env:RUNNER_TEMP/check/bundle/bin/myvault.exe" list today
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: The desktop app
+        working-directory: apps/app
+        shell: pwsh
+        run: |
+          flutter pub get
+          flutter build windows --release
+          Rename-Item build/windows/x64/runner/Release bundle
+          Compress-Archive -Path build/windows/x64/runner/bundle -DestinationPath "$env:GITHUB_WORKSPACE/vault-app-windows-x64.zip"
+
+      # The installer as people run it, in Windows PowerShell 5.1, against
+      # the files just built, served the way a release serves them.
+      - name: The installer works
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Path "$env:RUNNER_TEMP/release" | Out-Null
+          Copy-Item myvault-cli-windows-x64.zip, vault-app-windows-x64.zip "$env:RUNNER_TEMP/release"
+          $server = Start-Process python -ArgumentList '-m', 'http.server', '8765', '--directory', "$env:RUNNER_TEMP/release" -PassThru
+          Start-Sleep -Seconds 3
+          $env:MYVAULT_RELEASE = 'http://127.0.0.1:8765'
+          & ([scriptblock]::Create((Get-Content -Raw scripts/install.ps1))) -NoSetup
+          Stop-Process $server.Id
+          $bin = Join-Path $env:LOCALAPPDATA 'Programs\Vault\myvault\bin\myvault.exe'
+          & $bin list today
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          if (-not (Test-Path (Join-Path $env:LOCALAPPDATA 'Programs\Vault\vault-app\vault.exe'))) { throw 'The app was not installed.' }
+          if (-not (Test-Path (Join-Path ([Environment]::GetFolderPath('Programs')) 'Vault.lnk'))) { throw 'No Start menu shortcut.' }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            myvault-cli-windows-x64.zip
+            vault-app-windows-x64.zip
           if-no-files-found: error
 
   android:
@@ -111,7 +174,7 @@ jobs:
 
   publish:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [linux, android]
+    needs: [linux, windows, android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -127,4 +190,5 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --title "$GITHUB_REF_NAME" \
             --generate-notes \
-            myvault-cli-linux-x64.tar.gz vault-app-linux-x64.tar.gz vault-gnome-extension.zip vault-android-*.apk
+            myvault-cli-linux-x64.tar.gz vault-app-linux-x64.tar.gz vault-gnome-extension.zip vault-android-*.apk \
+            myvault-cli-windows-x64.zip vault-app-windows-x64.zip
