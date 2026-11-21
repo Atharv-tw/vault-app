@@ -41,7 +41,9 @@ begin
                       date text not null, hour integer not null, seconds integer not null'),
     ('diary', 'date text not null, author text not null, body text not null,
                task_id text, habit_id text, filed_at text, outcome text'),
-    ('pages', 'kind text not null, key text not null, title text, body text not null')
+    ('pages', 'kind text not null, key text not null, title text, body text not null'),
+    -- The vault's Markdown notes (path relative to the vault, e.g. projects/Helios/log.md); never raw/.
+    ('notes', 'path text not null, body text not null')
   loop
     execute format('create table if not exists %I (
       id text primary key,

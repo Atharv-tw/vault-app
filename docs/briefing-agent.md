@@ -194,11 +194,14 @@ with filing rules. If there is none, skip this section.
 
 - **Before planning,** read `Rules.md` (if it exists) and `Me.md`.
 - **After writing back,** file the diary into it: run `myvault notes use PATH`
-  with the vault's path, then follow
+  with the vault's path and `myvault notes sync` (the notes live in the shared
+  store; your clone of the vault is only their copy, and this brings it up to
+  date), then follow
   [plugin/skills/file-diary/SKILL.md](../plugin/skills/file-diary/SKILL.md).
-  Then write the morning page (and on Saturday night the weekly page),
-  commit it in the vault and push to its main branch. The vault is the only
-  place you write files, commit or push.
+  Then write the morning page (and on Saturday night the weekly page) and run
+  `myvault notes save -m "Morning: <date>"`, which sends the notes to the shared
+  store and commits and pushes the copy. The vault is the only place you write
+  files; never commit or push it by hand.
 - **Last, run `myvault sync` once more.** It publishes the new morning page,
   the goals and the projects to the phone, which cannot read the vault.
 - Tasks, deadlines and status live in Vault's store, not the vault. The

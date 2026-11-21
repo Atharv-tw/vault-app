@@ -59,7 +59,7 @@ Database openMemoryDb() {
 
 /// Tables that sync. Each has `updated_at` (client clock, used for
 /// last-write-wins), `deleted_at` (tombstone) and `dirty` (needs pushing).
-const syncedTables = ['lists', 'tasks', 'habits', 'habit_checks', 'focus_sessions', 'screen_usage', 'diary', 'pages'];
+const syncedTables = ['lists', 'tasks', 'habits', 'habit_checks', 'focus_sessions', 'screen_usage', 'diary', 'pages', 'notes'];
 
 const _sync = '''
   created_at TEXT NOT NULL,
@@ -187,6 +187,23 @@ const _migrations = [
     $_sync
   );
   CREATE INDEX pages_kind ON pages(kind, key);
+  ''',
+  // Notes: the vault's Markdown files, kept here and synced so every device and
+  // agent shares one live copy; the vault folder is a mirror of them (see
+  // NotesMirror). `notes_mirror` stays on this device: what the folder held at
+  // the last mirror pass, so a change on either side can be told apart.
+  '''
+  CREATE TABLE notes (
+    id TEXT PRIMARY KEY,
+    path TEXT NOT NULL,
+    body TEXT NOT NULL,
+    $_sync
+  );
+  CREATE INDEX notes_path ON notes(path);
+  CREATE TABLE notes_mirror (
+    path TEXT PRIMARY KEY,
+    hash TEXT NOT NULL
+  );
   ''',
 ];
 

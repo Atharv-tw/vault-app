@@ -395,7 +395,7 @@ List<String> saveVault(String vault, {String? message}) {
     if (!Directory(p.join(vault, '.git')).existsSync()) {
       return ['The vault is not a git repository; nothing to save.'];
     }
-    git(['add', '-A']);
+    git(['add', '-A', '--', '.', ':(exclude).conflicts']);
     if ((git(['status', '--porcelain']).stdout as String).trim().isEmpty) return ['Nothing new to save.'];
     final c = git(['commit', '-q', '-m', message ?? 'Notes: ${_today()}']);
     if (c.exitCode != 0) return ['git commit failed: ${(c.stderr as String).trim()}'];

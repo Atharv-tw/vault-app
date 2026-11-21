@@ -9,7 +9,10 @@ The user keeps a vault: a private folder of Markdown notes (it opens in
 Obsidian) that their diary is filed into every night. It is their memory,
 shared by every agent they use. Vault's `myvault` command and its MCP tools
 (`search`, `read_note`, `add_note`, `list_projects`, `log_project_work`,
-`list_goals`, `morning_page`, `save_notes`) reach it; `myvault --json notes
+`list_goals`, `morning_page`, `sync_notes`, `save_notes`) reach it. The notes live in a shared
+store that every device and agent uses; the folder is their readable copy. Run `sync_notes` (or `myvault
+notes sync`) before reading notes another device may have changed, and `save_notes` (or `myvault notes save`)
+after changing any; never commit or push the vault yourself; `myvault --json notes
 status` gives its path. The vault's own `README.md` is its schema and wins
 over anything here.
 
