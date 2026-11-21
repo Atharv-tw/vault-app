@@ -785,6 +785,7 @@ class VaultCommand extends Cmd {
     addSubcommand(_VaultStatus());
     addSubcommand(_VaultLint());
     addSubcommand(_NotesSave());
+    addSubcommand(_NotesSync());
     addSubcommand(_NotesPublish());
     addSubcommand(_NotesLog());
   }
@@ -1314,8 +1315,13 @@ class SyncCommand extends Cmd {
   Future<void> run() async {
     // The phone cannot read the vault, so what it shows of it travels as pages.
     final vault = vaultPath(store);
-    if (vault != null && Directory(vault).existsSync()) publishPages(store, vault);
+    final hasVault = vault != null && Directory(vault).existsSync();
+    if (hasVault) {
+      publishPages(store, vault);
+      NotesMirror(store, vault).sync();
+    }
     final r = await SyncEngine(store, SupabaseRemote(store)).sync();
+    if (hasVault) NotesMirror(store, vault).sync();
     out(
       r.toJson(),
       () =>
@@ -1611,14 +1617,33 @@ class _NotesPublish extends Cmd {
 }
 
 class _NotesSave extends Cmd {
-  _NotesSave() : super('save', 'Commit the vault and push it: myvault notes save [-m MESSAGE]') {
+  _NotesSave()
+    : super('save', 'Send changed notes to the shared store, bring others in, and commit the folder: myvault notes save [-m MESSAGE]') {
     argParser.addOption('message', abbr: 'm');
   }
 
   @override
-  void run() {
-    final lines = saveVault(_vault, message: opt('message'));
-    out({'done': lines}, () => lines.join('\n'));
+  Future<void> run() async {
+    final r = await syncNotes(store, _vault, save: true, message: opt('message'));
+    out(r, () => syncNotesLine(r));
+  }
+}
+
+class _NotesSync extends Cmd {
+  _NotesSync()
+    : super(
+        'sync',
+        'Keep notes in step with the shared store: this folder\'s edits go up, other devices\' edits come down. '
+            '--save also commits and pushes the folder (the readable copy).',
+      ) {
+    argParser.addFlag('save', negatable: false);
+    argParser.addOption('message', abbr: 'm');
+  }
+
+  @override
+  Future<void> run() async {
+    final r = await syncNotes(store, _vault, save: argResults!.flag('save'), message: opt('message'));
+    out(r, () => syncNotesLine(r));
   }
 }
 

@@ -19,9 +19,10 @@ as an MCP server, `vault_status`, `list_diary` (with `unfiled: true`) and
 1. **Find the vault.** Run `myvault --json notes status`. If `path` is null the
    user has no vault: say so, mention `myvault notes init` creates one, and stop.
    Do not create one unasked.
-2. **Get it up to date.** If `git` is true and `remote` is set, run
-   `git -C <path> pull --rebase` first. If that fails, stop and report it;
-   never file on top of a vault you could not update.
+2. **Get it up to date.** Run `myvault notes sync`. Notes live in the shared
+   store and the folder is their copy, so this brings in notes changed on
+   other devices. If it reports a sync failure, stop and report it; never
+   file on top of a vault you could not update.
 3. **Get the entries.** Run `myvault sync`, then `myvault --json diary --unfiled`.
    Each entry has `id`, `date`, `time` (when it was logged, on the user's
    clock), `body`, and `task` or `habit` when it was about one. If the list is
@@ -56,8 +57,9 @@ as an MCP server, `vault_status`, `list_diary` (with `unfiled: true`) and
 7. **Check and save it.** Run `myvault notes lint` and fix any error it
    reports (a broken link, a link into `raw/`). If the vault has a `log.md`,
    add a line in its format (`- [YYYY-MM-DD] ingest | diary 13 Oct: ...`).
-   If the vault is under git, commit with a message like `Diary: 13 Oct`
-   and, when it has a remote, push.
+   Then run `myvault notes save -m "Diary: 13 Oct"`: it sends the notes to the
+   shared store, where every device and agent reads them, and commits the
+   folder, which is the readable copy. Do not commit or push it yourself.
 8. **Report.** List what went where, one line per note touched. Mention any
    entry you were unsure about and where you put it.
 

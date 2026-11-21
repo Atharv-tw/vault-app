@@ -351,6 +351,30 @@ class Store {
 
   void deleteTask(String id) => _update('tasks', id, {'deleted_at': nowUtc()});
 
+  // -- notes (the vault's Markdown files, synced) -------------------------
+
+  /// The live note at a vault-relative [path], if any.
+  Map<String, Object?>? note(String path) {
+    final rows = db.select(
+      'SELECT * FROM notes WHERE path = ? AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1', [path]);
+    return rows.isEmpty ? null : {...rows.first};
+  }
+
+  /// All live notes, by path.
+  List<Map<String, Object?>> notes() => [
+        for (final r in db.select('SELECT * FROM notes WHERE deleted_at IS NULL ORDER BY path')) {...r},
+      ];
+
+  String addNote(String path, String body) {
+    final id = newId();
+    _insert('notes', {'id': id, 'path': path, 'body': body});
+    return id;
+  }
+
+  void setNoteBody(String id, String body) => _update('notes', id, {'body': body});
+
+  void deleteNote(String id) => _update('notes', id, {'deleted_at': nowUtc()});
+
   // Habits
 
   Habit addHabit({required String title, String? time, String? startDate, String? endDate}) {

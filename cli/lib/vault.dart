@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:vault_core/vault_core.dart';
 
+import 'brain.dart' show saveVault;
+
 /// Where this device keeps the vault. Stored locally and never synced: the
 /// same vault sits at a different path on each machine.
 const vaultPathKey = 'vault_path';
@@ -52,6 +54,55 @@ List<String> scaffoldVault(String path) {
   return written;
 }
 
+/// Sends the vault's notes to the shared store and brings others' changes in: the folder's edits go into the
+/// synced `notes` table, the server sync runs (when signed in), and what arrived is written back to the folder.
+/// With [save], the folder (now a readable copy) is also committed and pushed.
+Future<Map<String, Object?>> syncNotes(Store store, String vault, {bool save = false, String? message}) async {
+  final mirror = NotesMirror(store, vault);
+  final remote = SupabaseRemote(store);
+  SyncResult? server;
+  String? serverError;
+  Future<void> serverSync() async {
+    if (!remote.signedIn || serverError != null) return;
+    try {
+      server = await SyncEngine(store, remote).sync();
+    } on Exception catch (e) {
+      serverError = e.toString();
+    }
+  }
+
+  // Pull first, so a fresh device (a new clone) starts from the shared notes instead of overwriting them.
+  await serverSync();
+  final before = mirror.sync();
+  await serverSync();
+  final after = mirror.sync();
+  return {
+    'from_folder': before.toJson(),
+    'to_folder': after.toJson(),
+    if (server != null) 'server': server!.toJson(),
+    'server_error': ?serverError,
+    'signed_in': remote.signedIn,
+    'copy': ?(save ? saveVault(vault, message: message) : null),
+  };
+}
+
+String syncNotesLine(Map<String, Object?> r) {
+  final a = r['from_folder'] as Map<String, Object?>, b = r['to_folder'] as Map<String, Object?>;
+  final parts = <String>[
+    if ((a['imported'] as int) > 0) '${a['imported']} sent from this folder',
+    if ((a['deleted'] as int) + (b['deleted'] as int) > 0) '${(a['deleted'] as int) + (b['deleted'] as int)} deleted',
+    if ((b['exported'] as int) + (a['exported'] as int) > 0) '${(b['exported'] as int) + (a['exported'] as int)} brought in from other devices',
+  ];
+  final conflicts = [...(a['conflicts'] as List? ?? const []), ...(b['conflicts'] as List? ?? const [])];
+  return [
+    parts.isEmpty ? 'Notes are in step.' : 'Notes: ${parts.join(', ')}.',
+    if (conflicts.isNotEmpty) 'Changed in two places (the newer kept; the other is in .conflicts/): ${conflicts.join(', ')}',
+    if (r['signed_in'] != true) 'Not signed in to sync, so the notes stay on this device (myvault login).',
+    if (r['server_error'] != null) 'Sync failed: ${r['server_error']}',
+    ...?(r['copy'] as List?)?.cast<String>(),
+  ].join('\n');
+}
+
 /// What `myvault notes status` reports.
 Map<String, Object?> vaultStatus(Store store) {
   final path = vaultPath(store);
@@ -67,6 +118,7 @@ Map<String, Object?> vaultStatus(Store store) {
     'git': exists && Directory(p.join(path, '.git')).existsSync(),
     'remote': remote,
     'unfiled': store.diary(author: DiaryEntry.me, unfiledOnly: true).length,
+    'notes_synced': store.notes().length,
   };
 }
 

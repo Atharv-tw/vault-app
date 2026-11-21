@@ -483,9 +483,20 @@ final _tools = <_Tool>[
       return pg == null ? {'page': null} : {'path': pg.path, 'text': pg.text};
     },
   ),
-  _Tool('save_notes', 'Commit the user\'s vault and push it, after you changed notes in it.', {
-    'message': _str('The commit message; default "Notes: <date>".'),
-  }, (store, a) => {'done': saveVault(requireVault(vaultPath(store)), message: _s(a, 'message'))}),
+  _Tool(
+    'save_notes',
+    'After you changed notes in the user\'s vault: send them to the shared store (every device and agent sees them), '
+        'bring in changes made elsewhere, and commit the folder, which is the readable copy.',
+    {'message': _str('The commit message; default "Notes: <date>".')},
+    (store, a) => syncNotes(store, requireVault(vaultPath(store)), save: true, message: _s(a, 'message')),
+  ),
+  _Tool(
+    'sync_notes',
+    'Bring the vault folder up to date with notes changed on other devices (and send this folder\'s edits). '
+        'Use before reading notes that another device may have changed.',
+    {},
+    (store, a) => syncNotes(store, requireVault(vaultPath(store))),
+  ),
   _Tool(
     'mark_diary_filed',
     'Record that diary entries have been filed into the user\'s vault, so they are not filed twice.',
@@ -556,7 +567,8 @@ Future<void> serveMcp(Store store) async {
         var isError = false;
         try {
           final args = (params['arguments'] as Map<String, Object?>?) ?? {};
-          text = jsonEncode(tool.handler(store, args));
+          final result = tool.handler(store, args);
+          text = jsonEncode(result is Future ? await result : result);
         } on TodoException catch (e) {
           text = e.message;
           isError = true;

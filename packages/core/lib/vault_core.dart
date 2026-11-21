@@ -1,6 +1,7 @@
 export 'src/dates.dart';
 export 'src/db.dart';
 export 'src/models.dart';
+export 'src/notes.dart';
 export 'src/planning.dart';
 export 'src/store.dart';
 export 'src/supabase_remote.dart';
